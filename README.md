@@ -28,7 +28,7 @@ A small macOS app that converts Markdown into DOCX or PDF. Built for Claude Code
 ### Clone and install
 
 ```sh
-git clone https://github.com/<your-org>/md-converter.git
+git clone https://github.com/ls-dotomics/md-converter.git
 cd md-converter
 make install
 ```
