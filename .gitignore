@@ -6,3 +6,6 @@ target/
 
 # Bundled binaries (fetched via scripts/)
 vendor/
+
+# Intermediate iconset (regenerated from assets/icon-source.png)
+assets/AppIcon.iconset/

@@ -31,4 +31,5 @@ category = "public.app-category.productivity"
 short_description = "Convert Markdown to DOCX or PDF"
 long_description = "A small macOS app that wraps pandoc + typst to convert Markdown files into DOCX or PDF, aimed at users handling Claude Code output."
 osx_minimum_system_version = "14.0"
+icon = ["assets/AppIcon.icns"]
 resources = ["vendor/pandoc", "vendor/typst"]
