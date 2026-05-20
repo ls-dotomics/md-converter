@@ -1,19 +1,27 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod convert;
+mod theme;
 
 use std::path::PathBuf;
 
-use iced::widget::{button, column, container, pick_list, row, text, Space};
-use iced::{event, window, Alignment, Element, Event, Length, Subscription, Task};
+use iced::widget::{button, column, container, pick_list, row, svg, text, Space};
+use iced::{event, window, Alignment, Element, Event, Font, Length, Subscription, Task};
 
 use convert::{convert_file, OutputFormat};
+
+const ALT_RIVIERA_BYTES: &[u8] = include_bytes!("../assets/fonts/ALTRiviera-Regular.otf");
+const LOGO_SVG: &[u8] = include_bytes!("../assets/logo-living-models.svg");
+const ALT_RIVIERA: Font = Font::with_name("ALT Riviera");
 
 fn main() -> iced::Result {
     iced::application(App::default, App::update, App::view)
         .title(|_state: &App| "MD Converter".to_string())
         .subscription(App::subscription)
-        .window_size((560.0, 400.0))
+        .theme(|_state: &App| theme::living_models_theme())
+        .font(ALT_RIVIERA_BYTES)
+        .default_font(ALT_RIVIERA)
+        .window_size((560.0, 460.0))
         .run()
 }
 
@@ -112,34 +120,43 @@ impl App {
     }
 
     fn view(&self) -> Element<'_, Message> {
+        let header = self.header();
         let drop_zone = self.drop_zone();
         let controls = self.controls();
         let status = self.status_view();
 
         container(
-            column![drop_zone, controls, status]
-                .spacing(18)
+            column![header, drop_zone, controls, status]
+                .spacing(20)
                 .align_x(Alignment::Center),
         )
-        .padding(24)
+        .padding(28)
         .width(Length::Fill)
         .height(Length::Fill)
+        .style(theme::canvas)
         .into()
+    }
+
+    fn header(&self) -> Element<'_, Message> {
+        let handle = svg::Handle::from_memory(LOGO_SVG);
+        container(svg(handle).width(Length::Fixed(300.0)).height(Length::Fixed(52.0)))
+            .center_x(Length::Fill)
+            .into()
     }
 
     fn drop_zone(&self) -> Element<'_, Message> {
         let label: Element<Message> = if let Some(input) = &self.input {
             column![
                 text(file_name(input)).size(18),
-                text(parent_path(input)).size(11),
+                text(parent_path(input)).size(11).color(theme::GREY),
             ]
             .spacing(4)
             .align_x(Alignment::Center)
             .into()
         } else {
             column![
-                text("Drop a Markdown file here").size(16),
-                text("or click Choose File…").size(12),
+                text("drop a markdown file here").size(16),
+                text("or click choose file…").size(12).color(theme::GREY),
             ]
             .spacing(4)
             .align_x(Alignment::Center)
@@ -152,9 +169,9 @@ impl App {
             .center_x(Length::Fill)
             .center_y(Length::Fill)
             .style(if self.is_hovered {
-                drop_zone_hovered
+                theme::drop_zone_hovered
             } else {
-                drop_zone_idle
+                theme::drop_zone_idle
             })
             .into()
     }
@@ -164,11 +181,14 @@ impl App {
             OutputFormat::ALL,
             Some(self.format),
             Message::FormatChanged,
-        );
+        )
+        .text_size(14);
 
         let convert_disabled = self.input.is_none() || matches!(self.status, Status::Converting);
         let convert_btn = {
-            let b = button(text("Convert").size(14)).padding([6, 18]);
+            let b = button(text("convert").size(14))
+                .padding([8, 22])
+                .style(theme::primary_button);
             if convert_disabled {
                 b
             } else {
@@ -177,8 +197,9 @@ impl App {
         };
 
         row![
-            button(text("Choose File…").size(14))
-                .padding([6, 14])
+            button(text("choose file…").size(14))
+                .padding([8, 16])
+                .style(theme::secondary_button)
                 .on_press(Message::PickFile),
             format_picker,
             Space::new().width(Length::Fill),
@@ -192,15 +213,17 @@ impl App {
     fn status_view(&self) -> Element<'_, Message> {
         match &self.status {
             Status::Idle => Space::new().height(Length::Fixed(20.0)).into(),
-            Status::Converting => row![text("Converting…").size(12)].into(),
+            Status::Converting => row![text("converting…").size(12).color(theme::GREY)].into(),
             Status::Done(path) => row![
-                text(format!("✓ Saved to {}", file_name(path))).size(12),
+                text(format!("✓ saved to {}", file_name(path))).size(12),
                 Space::new().width(Length::Fixed(8.0)),
-                button(text("Show in Finder").size(11))
-                    .padding([2, 8])
+                button(text("show in finder").size(11))
+                    .padding([4, 10])
+                    .style(theme::secondary_button)
                     .on_press(Message::RevealInFinder(path.clone())),
             ]
             .align_y(Alignment::Center)
+            .spacing(6)
             .into(),
             Status::Failed(message) => text(format!("⚠ {message}")).size(12).into(),
         }
@@ -213,33 +236,6 @@ impl App {
             Event::Window(window::Event::FilesHoveredLeft) => Some(Message::FileHovered(false)),
             _ => None,
         })
-    }
-}
-
-fn drop_zone_idle(_theme: &iced::Theme) -> container::Style {
-    use iced::{Background, Border, Color};
-    container::Style {
-        background: Some(Background::Color(Color::TRANSPARENT)),
-        border: Border {
-            color: Color::from_rgba(0.55, 0.55, 0.6, 0.6),
-            width: 2.0,
-            radius: 14.0.into(),
-        },
-        ..Default::default()
-    }
-}
-
-fn drop_zone_hovered(theme: &iced::Theme) -> container::Style {
-    use iced::{Background, Border};
-    let palette = theme.extended_palette();
-    container::Style {
-        background: Some(Background::Color(palette.primary.weak.color)),
-        border: Border {
-            color: palette.primary.base.color,
-            width: 2.0,
-            radius: 14.0.into(),
-        },
-        ..Default::default()
     }
 }
 
